@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OTT Panel de Control Hotelero</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#0f1117;--surface:#1a1d27;--surface2:#222636;--border:#2e3248;
+    --accent:#4f7cff;--accent2:#34d399;--accent3:#f59e0b;--accent4:#f87171;
+    --text:#e2e8f0;--muted:#8892a4;--r:12px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  body{background:var(--bg);color:var(--text);font-family:"Segoe UI",system-ui,sans-serif;font-size:13px;min-height:100vh;}
+  .hdr{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 20px;display:flex;align-items:center;gap:20px;flex-wrap:wrap;}
+  .hdr h1{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:1px;}
+  .hdr span{color:var(--muted);font-size:12px;margin-left:6px;}
+  .filt{display:flex;gap:10px;flex-wrap:wrap;margin-left:auto;align-items:center;}
+  .fg{display:flex;align-items:center;gap:6px;}
+  .fl{color:var(--muted);font-size:11px;white-space:nowrap;}
+  select{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer;outline:none;}
+  select:focus{border-color:var(--accent);}
+  .yc-wrap{display:flex;gap:4px;flex-wrap:wrap;}
+  .yc{display:none;}
+  .ycl{cursor:pointer;padding:3px 7px;border-radius:5px;font-size:11px;font-weight:600;border:1px solid var(--border);background:var(--surface2);color:var(--muted);transition:all .15s;}
+  .yc:checked+.ycl{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .mr{display:flex;align-items:center;gap:4px;}
+  .mr select{width:68px;}
+  .btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:11px;}
+  .btn:hover{border-color:var(--accent4);color:var(--accent4);}
+  .main{padding:14px 16px;display:flex;flex-direction:column;gap:12px;}
+  .krow{display:grid;grid-template-columns:repeat(7,1fr);gap:10px;}
+  .kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:12px 14px;position:relative;overflow:hidden;}
+  .kpi::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--kc,var(--accent));}
+  .kl{color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;}
+  .kv{font-size:20px;font-weight:700;color:var(--kc,var(--text));line-height:1;}
+  .ks{color:var(--muted);font-size:10px;margin-top:4px;}
+  .kd{font-size:10px;margin-top:3px;font-weight:600;}
+  .kd.pos{color:var(--accent2);} .kd.neg{color:var(--accent4);}
+  .crow{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .cc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+  .cc.full{grid-column:1/-1;}
+  .ch{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px;}
+  .ct{font-size:13px;font-weight:600;}
+  .cs{font-size:11px;color:var(--muted);margin-top:2px;}
+  .ms{background:var(--surface2);border:1px solid var(--border);color:var(--text);border-radius:6px;padding:4px 8px;font-size:11px;}
+  .cw{position:relative;height:220px;}
+  .cw.tall{height:260px;}
+  .brow{display:grid;grid-template-columns:2fr 1fr;gap:12px;}
+  .tc{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px;}
+  table{width:100%;border-collapse:collapse;font-size:11px;}
+  th{color:var(--muted);text-align:left;padding:6px 8px;border-bottom:1px solid var(--border);font-weight:600;font-size:10px;text-transform:uppercase;letter-spacing:.4px;position:sticky;top:0;background:var(--surface);}
+  td{padding:5px 8px;border-bottom:1px solid var(--border);}
+  tr:last-child td{border-bottom:none;}
+  tr:hover td{background:var(--surface2);}
+  .n{text-align:right;font-variant-numeric:tabular-nums;}
+  .tw{max-height:300px;overflow-y:auto;}
+  .tag{display:inline-block;padding:1px 5px;border-radius:4px;font-size:10px;font-weight:600;}
+  .tp{background:rgba(52,211,153,.15);color:var(--accent2);}
+  .tn{background:rgba(248,113,113,.15);color:var(--accent4);}
+  .dr td{border-top:2px solid var(--accent)!important;padding-top:8px!important;font-style:italic;color:var(--accent3);}
+  ::-webkit-scrollbar{width:5px;height:5px;}
+  ::-webkit-scrollbar-track{background:transparent;}
+  ::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="hdr">
+  <div style="display:flex;align-items:baseline">
+    <h1>OTT</h1><span>Panel de Control &middot; Explotacion Hotelera</span>
+  </div>
+  <div class="filt">
+    <div class="fg"><span class="fl">Anos</span><div class="yc-wrap" id="yc"></div></div>
+    <div class="fg"><span class="fl">Meses</span>
+      <div class="mr"><select id="mf"></select><span style="color:var(--muted)">-</span><select id="mt"></select></div>
+    </div>
+    <button class="btn" onclick="reset()">Restablecer</button>
+  </div>
+</div>
+<div class="main">
+  <div class="krow" id="kr"></div>
+  <div class="cc full">
+    <div class="ch">
+      <div><div class="ct">Evolucion Temporal</div><div class="cs">Magnitud mensual en el periodo seleccionado</div></div>
+      <select class="ms" id="mm" onchange="rMain()"></select>
+    </div>
+    <div class="cw tall"><canvas id="c1"></canvas></div>
+  </div>
+  <div class="crow">
+    <div class="cc">
+      <div class="ch">
+        <div><div class="ct">Estacionalidad Mensual</div><div class="cs">Media por mes</div></div>
+        <select class="ms" id="sm" onchange="rSeas()"></select>
+      </div>
+      <div class="cw"><canvas id="c2"></canvas></div>
+    </div>
+    <div class="cc">
+      <div class="ch">
+        <div><div class="ct">Comparativa Anual</div><div class="cs">Total o media por ano</div></div>
+        <select class="ms" id="am" onchange="rAnn()"></select>
+      </div>
+      <div class="cw"><canvas id="c3"></canvas></div>
+    </div>
+  </div>
+  <div class="brow">
+    <div class="tc">
+      <div class="ch"><div class="ct">Resumen Anual de Magnitudes</div></div>
+      <div class="tw"><table id="tbl"></table></div>
+    </div>
+    <div class="cc">
+      <div class="ch"><div><div class="ct">Mix de Regimen</div><div class="cs">Distribucion de estancias</div></div></div>
+      <div class="cw"><canvas id="c4"></canvas></div>
+    </div>
+  </div>
+
+  <!-- COMPARATIVA POR MES -->
+  <div class="cc full" style="border-color:var(--accent3);">
+    <div class="ch">
+      <div>
+        <div class="ct" style="color:var(--accent3);">&#128197; Comparativa por Mes entre Anos</div>
+        <div class="cs">Selecciona un mes y una magnitud para comparar todos los anos</div>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+        <span class="fl">Mes</span>
+        <select class="ms" id="cmpM" onchange="rCmp()" style="border-color:var(--accent3);"></select>
+        <span class="fl">Magnitud</span>
+        <select class="ms" id="cmpK" onchange="rCmp()" style="border-color:var(--accent3);"></select>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div class="cw tall"><canvas id="c5"></canvas></div>
+      <div class="tw" style="max-height:260px;"><table id="tblCmp" style="font-size:11px;"></table></div>
+    </div>
+  </div>
+</div>
+<script>
+var D={"dates":[{"col":4,"year":2015,"month":1},{"col":5,"year":2015,"month":2},{"col":6,"year":2015,"month":3},{"col":7,"year":2015,"month":4},{"col":8,"year":2015,"month":5},{"col":9,"year":2015,"month":6},{"col":10,"year":2015,"month":7},{"col":11,"year":2015,"month":8},{"col":12,"year":2015,"month":9},{"col":13,"year":2015,"month":10},{"col":14,"year":2015,"month":11},{"col":15,"year":2015,"month":12},{"col":16,"year":2016,"month":1},{"col":17,"year":2016,"month":2},{"col":18,"year":2016,"month":3},{"col":19,"year":2016,"month":4},{"col":20,"year":2016,"month":5},{"col":21,"year":2016,"month":6},{"col":22,"year":2016,"month":7},{"col":23,"year":2016,"month":8},{"col":24,"year":2016,"month":9},{"col":25,"year":2016,"month":10},{"col":26,"year":2016,"month":11},{"col":27,"year":2016,"month":12},{"col":28,"year":2017,"month":1},{"col":29,"year":2017,"month":2},{"col":30,"year":2017,"month":3},{"col":31,"year":2017,"month":4},{"col":32,"year":2017,"month":5},{"col":33,"year":2017,"month":6},{"col":34,"year":2017,"month":7},{"col":35,"year":2017,"month":8},{"col":36,"year":2017,"month":9},{"col":37,"year":2017,"month":10},{"col":38,"year":2017,"month":11},{"col":39,"year":2017,"month":12},{"col":40,"year":2018,"month":1},{"col":41,"year":2018,"month":2},{"col":42,"year":2018,"month":3},{"col":43,"year":2018,"month":4},{"col":44,"year":2018,"month":5},{"col":45,"year":2018,"month":6},{"col":46,"year":2018,"month":7},{"col":47,"year":2018,"month":8},{"col":48,"year":2018,"month":9},{"col":49,"year":2018,"month":10},{"col":50,"year":2018,"month":11},{"col":51,"year":2018,"month":12},{"col":52,"year":2019,"month":1},{"col":53,"year":2019,"month":2},{"col":54,"year":2019,"month":3},{"col":55,"year":2019,"month":4},{"col":56,"year":2019,"month":5},{"col":57,"year":2019,"month":6},{"col":58,"year":2019,"month":7},{"col":59,"year":2019,"month":8},{"col":60,"year":2019,"month":9},{"col":61,"year":2019,"month":10},{"col":62,"year":2019,"month":11},{"col":63,"year":2019,"month":12},{"col":64,"year":2020,"month":1},{"col":65,"year":2020,"month":2},{"col":66,"year":2020,"month":3},{"col":67,"year":2020,"month":4},{"col":68,"year":2020,"month":5},{"col":69,"year":2020,"month":6},{"col":70,"year":2020,"month":7},{"col":71,"year":2020,"month":8},{"col":72,"year":2020,"month":9},{"col":73,"year":2020,"month":10},{"col":74,"year":2020,"month":11},{"col":75,"year":2020,"month":12},{"col":76,"year":2021,"month":1},{"col":77,"year":2021,"month":2},{"col":78,"year":2021,"month":3},{"col":79,"year":2021,"month":4},{"col":80,"year":2021,"month":5},{"col":81,"year":2021,"month":6},{"col":82,"year":2021,"month":7},{"col":83,"year":2021,"month":8},{"col":84,"year":2021,"month":9},{"col":85,"year":2021,"month":10},{"col":86,"year":2021,"month":11},{"col":87,"year":2021,"month":12},{"col":88,"year":2022,"month":1},{"col":89,"year":2022,"month":2},{"col":90,"year":2022,"month":3},{"col":91,"year":2022,"month":4},{"col":92,"year":2022,"month":5},{"col":93,"year":2022,"month":6},{"col":94,"year":2022,"month":7},{"col":95,"year":2022,"month":8},{"col":96,"year":2022,"month":9},{"col":97,"year":2022,"month":10},{"col":98,"year":2022,"month":11},{"col":99,"year":2022,"month":12},{"col":100,"year":2023,"month":1},{"col":101,"year":2023,"month":2},{"col":102,"year":2023,"month":3},{"col":103,"year":2023,"month":4},{"col":104,"year":2023,"month":5},{"col":105,"year":2023,"month":6},{"col":106,"year":2023,"month":7},{"col":107,"year":2023,"month":8},{"col":108,"year":2023,"month":9},{"col":109,"year":2023,"month":10},{"col":110,"year":2023,"month":11},{"col":111,"year":2023,"month":12},{"col":112,"year":2024,"month":1},{"col":113,"year":2024,"month":2},{"col":114,"year":2024,"month":3},{"col":115,"year":2024,"month":4},{"col":116,"year":2024,"month":5},{"col":117,"year":2024,"month":6},{"col":118,"year":2024,"month":7},{"col":119,"year":2024,"month":8},{"col":120,"year":2024,"month":9},{"col":121,"year":2024,"month":10},{"col":122,"year":2024,"month":11},{"col":123,"year":2024,"month":12},{"col":124,"year":2025,"month":1},{"col":125,"year":2025,"month":2},{"col":126,"year":2025,"month":3},{"col":127,"year":2025,"month":4},{"col":128,"year":2025,"month":5},{"col":129,"year":2025,"month":6},{"col":130,"year":2025,"month":7},{"col":131,"year":2025,"month":8},{"col":132,"year":2025,"month":9},{"col":133,"year":2025,"month":10},{"col":134,"year":2025,"month":11},{"col":135,"year":2025,"month":12},{"col":136,"year":2026,"month":1},{"col":137,"year":2026,"month":2},{"col":138,"year":2026,"month":3},{"col":139,"year":2026,"month":4},{"col":140,"year":2026,"month":5},{"col":141,"year":2026,"month":6}],"series":{"TOTAL ESTANCIAS":[10208,9326,9727,9351,8865,9494,11518,12099,10822,11129,10662,10564,11128,10451,11064,10215,10928,10687,12725,13041,11143,11877,10732,10176,10727,10392,10814,11292,10575,10923,12636,12929,10965,11052.0,10565,9568,10110,10076,10860,10435.0,9532,10011,11093,12141,10772.0,11109,10431,10234,10403,9743,10837,10443.0,10573.0,10734,11037,11789,10609,10550,9680,9713,9918,9685,4442,null,null,null,null,null,null,null,null,null,0,0,0,0,0,0,210,7196,7877,7344,8633,7681,4942,7885,10062,9896,9772,10386,11328,11323,10389,10209,9508,10250,9510,9326,10075,9663,9216,9879,10442,10449,9941,10452,9949,9887,9817,9695,9879,8139,7022,7183,7852,8814,9845,10598,10154,9772,10030,9277,9777,9001,9317,9843,10170,10324,9925,10071,9668,9150,10066,9403,9869,8943,9359,9701],"Habitaciones Ocupadas":[5704,5059,5105,4722,4573,4701,5228,5535,5438,5653,5538,5405,5693,5380,5414,5122,5335,5100,5621,5637,5525,5612,5473,5027,5312,5125,5496,4976,5091,5232,5381,5374,5288,5271,5257,4700,5022,5038,5298,5022,4825,4868,5105,5493,5329,5398,5214,5141,5188,4890,5373,5029,5282,5260,5187,5380,5395,5203,4904,4918,4990,4875,2265,null,null,null,null,null,null,null,null,null,0,0,0,0,0,0,95,3364,4019,3631,4502,4072,2527,4018,5017,4762,5037,5074,5205,5216,5198,5140,4901,5154,4958,4625,5082,4683,4759,5047,4968,5042,5084,5338,5036,5212,5133,4991,4949,4455,3584,3547,3648,4317,5080,5429,5277,5137,5209,4735,4962,4576,4897,5078,5059,5079,5107,5301,5106,4863,5219,4876,5044,4635,5014,4969],"% Ocupacion (Est)":[72.37,73.2,69.0,68.51,62.85,69.55,81.7,85.8,79.3,78.9,78.11,74.9,78.53,79.0,78.44,74.84,77.48,78.3,90.22,92.46,81.63,84.2,78.62,72.0,76.05,81.57,76.67,82.7,74.97,80.02,89.59,91.66,80.33,78.36,77.4,67.83,71.68,79.09,76.99,76.45,67.58,73.34,78.65,86.08,78.92,78.76,76.42,72.56,73.75,76.48,76.83,76.51,74.96,78.64,78.25,83.58,77.72,74.8,70.92,68.86,70.0,73.0,54.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,23.08,51.02,57.71,52.0,63.24,54.46,35.04,61.89,71.34,72.5,69.28,76.09,80.31,80.28,76.11,72.38,69.66,72.67,67.35,73.12,71.35,70.71,65.27,72.29,73.95,74.0,72.75,74.02,72.81,70.02,70.0,73.4,69.97,59.56,49.73,52.56,55.61,62.42,72.05,75.06,74.31,69.21,71.03,72.82,69.32,65.94,66.05,72.11,72.1,73.19,72.71,71.4,70.83,64.87,71.36,73.81,69.97,65.52,66.35,71.07],"% Ocupacion (Hab)":[97.4,95.6,87.1,83.28,78.05,82.91,89.2,94.47,95.91,96.5,97.67,92.25,96.72,98.0,92.4,90.34,91.06,90.0,95.94,96.21,97.44,95.78,96.53,86.0,90.66,97.0,93.8,87.8,86.89,92.28,91.84,94.78,93.26,89.96,92.72,80.22,85.71,95.2,90.42,88.57,82.35,85.86,87.13,93.75,93.99,92.13,91.96,87.75,88.55,92.4,91.71,88.69,90.15,92.77,88.53,91.82,95.15,88.8,86.49,83.94,85.0,89.0,67.0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,25.13,57.42,70.88,62.0,79.4,69.5,43.13,75.93,85.63,83.99,85.97,89.49,88.84,89.03,91.67,87.73,86.44,87.97,84.62,87.4,86.74,82.59,81.23,89.01,84.79,86.06,89.66,91.11,88.82,88.96,88.0,91.06,84.47,78.57,61.17,62.56,62.26,73.68,89.59,92.66,93.07,87.68,88.91,89.48,84.69,80.7,83.58,89.56,86.35,86.69,90.07,90.48,90.05,83.0,89.08,92.14,86.09,81.75,85.58,87.64],"VENTAS":[435370,388004,466840.16,380534,288538,348897,481428,517337.33,466051.32,502663.96,489405,516214,540800,503440,574202.69,466335.19,406723,445319,590357.05,620011.63,520165,579482,581707,592953,630071,570331.04,642385.16,613814.4,549705,524221,651490,681557,575345,603273,618328,601118,635112,608828.73,664097,498444,412255,468962,557311,642503,566996,589750,607489,570063,620009,577811,633720,519708,479887,483455,571736,619128,576646,566873,579158,554355,603933,577498,269579,-834,-368,39,0,0,0,-9,0,-6366,-122,0,1800,0,0,0,11212,329209,391816,432652,564025,492378,300913,445625,582286,529612,428072,496305,630849,645795,571513,566578,645481,680168,673884,642185,732287,603364,477641,549238,679953,687123,637451,677295,766417,788865,759243,796241,830604,617648,403853,448531,537200,655863,703543,799069,868970,869657,896240,846630,927506,739358,635968,694875,820159,839952,799464,821182,883121,918573,965795,902227,956569,720680.15,657718.94,707551.33],"Ventas Paquete":[393744,352068,423803,344510,258002,317615,448250,485367.33,434316,467995,459042,490528,510810,477502,541116.04,436183.19,382368,421122,561778,593439.73,497374,551255,553240,571327,604318,539953.04,612804,584427,522669,496937,624345,655501,547594,574323,590143,578572,607811,583581,635595,470142,386302,440891,531830,616788,538701,563869,579163,545047,589975,539996,603617,494340,449786,460901,548627,591747,551238,539981,547204,530802,574936,549157,253943,-604,99,null,0,0,0,-9,0,-6366,-122,0,1800,0,0,0,11025,316183,376559,409201,534499,468615,283331,423646,550722,502766,400229,464948,596140,609160,529966,525086,609167,649289,637685,603015,690996,565680,438778,506728,647396,649129,602043,625945,720616,749225,720304,757517,790550,585803,373569,420843,512003,625221,665304,751420,825836,831199,851008,802513,884387,704196,590046,654613,781985,798410,754297,777440,843084,882264,932247,869492,930775,688834.74,613691.34,675122.14],"Coste Directo Ventas":[43063,47930,49154,51299,45497,51956,55503,69941,72267,67404,68848,59366,59829,65773,56805,58692,64582,63073,65599,76013,76322,63987,68749,60837,57398,61321,55561,66275,54909,60674,64316,76037,68561,65113,60884,62226,54612,61360,56264,57770,53506,52696,60868,75698,67105,61695,65346,70515,53550,59453,59876,62697,58001,64851,65654,68863,66280,65361,62542,67937,58974,58925,37478,961,748,-302,482,616,-479,616,616.16,31,586,761,759,336,398,1989,2804,45149,62498,57970,62503,54995,31618,48799,57842,77478,68353,81087,81628,81223,77504,76169,79026,90421,80079,80614,77624,83047,79124,79959,84988,85825,75523,72746,85168,100623,74675,84057,84422,71619,61916,63313,62166,68641,84297,79862,93230,102188,84143,88269,86458,92716,74418,85698,87873,91813,84305,81877,91097,106946,84781,91333,84965,90422.86,76228.02,79928.84],"Coste de Personal":[163574,163519,162772,170881,155428,167498,182128,185042,184391,185434,178593,192117,186872,189878,224097,184543,197257,189897,204637,210484,220589,196837,180402,205475,195928,193258,200374,202555,209404,211959,199335,219164,206831,215143,206019,232993,197978,199819,203247,212346,205631,200452,207284,207514,209226,209853,213802,215070,209640,201561,194305,225398,220098,209154,211764,211940,213072,223710,206487,226412,206076,202440,144173,28645,30719,29388,39697,41327,42210,20217,22862.4,21395,22684,23064,20262,22470,17812.24,19437,50143,175270,191527,179149,216810,256871,182775,180928,202465,212327,217162,228138,218393,220357,227884,243359,228554,261337,241834,228324,227668,250275,238089,238788,295903,277690,265662,275949,277874,294316,276313,268557,268590,251258,246189,312528,241455,279137,298734,300342,294333,319448,293465,296186,302889,295913,307257,306730,329436,300351,313231,321190,324811,338312,324313,319547,333799,331773.84,343001.4,333896.76],"Otros Gastos Operativos":[90215,78407,84432,81224,77259,83704,94283,99718,86586,91591,91961.17,95336,95650,89322,97276,94878,92731,85056,103165,109087,100575,102181,102843,98258,108681,96042,107714,109057,96817,105160,109160,122054,105010,107584,105548,104618,107209,100680,107503,106237,102181,102198,111050,116891,105732,117149,102140,116978,111427,104056,110082,105115,98501,98023,112895,121368,107216,108460,108188,110044,106822,102362,68788,25593,26194,25418,27997,31085,25777,27676,25434.21,9495,24841,25294,27323,22240,26659.44,23872,44267,101599,101011,107335,103460,100691,76243,101351,123371,93126,104806,108148,114833,129514,111738,111473,120277,126193,121930,113228,121586,119736,120783,117473,133058,131584,124657,134930,134747,130740,144265,140969,140627,121232,103797,123044,117357,142901,146533,157789,157577,170028,160274,145462,150748,137267,138519,136377,159242,154295,154909,154249,144818,151313,157343,143918,154618,146110.31,141349.63,141387.98],"G.O.P.":[138518,98148,170482.16,77130,10354,45739,149514,162636.33,122807.32,158234.96,150002.83,169395,198449,158467,196024.69,128222.19,52153,107293,216956.05,224427.63,122679,216477,229713,228383,268064,219710.04,278736.16,235927.4,188575,146428,278679,264302,194943,215433,245877,201281,275313,246969.73,297083,122091,50937,113616,178109,242400,184933,201053,226201,167500,245392,212741,269457,126498,103287,111427,181423,216957,190078,169342,201941,149962,232060,213771,19140,-56033,-58029,-54465,-68176,-73028,-67508,-48518,-48912.77,-37287,-48233,-49119,-46544,-45046,-44869.68,-45298,-86002,7191,36780,88198,181252,79821,10277,114547,198608,146681,37751,78932,215995,214701,154387,135577,217624,202217,230041,220019,305409,150306,39645,113018,166004,192024,171609,193670,268628,263186,263990,302658,336965,173539,-8049,-50354,116222,165184,173979,261076,323830,277993,358358,316713,387411,213462,115774,166070,243608,293493,247019,263866,322395,322002,399358,347429,383187,152373.14,97139.89,152337.75],"EBITDA Operacion":[135748,100918,167198.16,78846,10422,45413,150548,160947.33,121027.32,155070.96,147224.83,155546,194350,155179,192028.69,125387.19,48432,99603,211932.05,217617.63,118911,209595,222723,221491,259882,213279.04,273052.16,228715.4,186490,139626,261037,237722,175314,193765,221147,178232,244981,222151.73,271635,99966,41696,102110,164322,218103,166302,178556,180920,160806,212283,191451,242840,112584,97890,100441,163150,195151,170946,151981,182385,155006,208659,192332,17210,-9884,-58276,-54943,-68155,-73246,-67702,-48714,-48860.73,-37182,-48343,-49959,-46562,-45157,-45065.68,-45522,-75038,6983,36557,87961,181499,78170,9054,102914,178581,131846,33583,70872,194116,193050,138782,122051,214993,176340,211452,202220,280458,138096,36957,103190,150775,169675,155815,175947,244195,196601,237827,275160,303263,157446,-2967,-54337,109938,148422,156382,234814,290552,313392,322339,284845,348486,191932,103863,149142,218926,263809,221996,237158,289821,289481,358171,312387,344730,136880.95,87166.28,136331.5],"EBITDA Total":[135748,100918,167198.16,78846,10422,45413,150548,160947.33,121027.32,155070.96,147224.83,155546,194350,155179,192028.69,125387.19,48432,99603,211932.05,217617.63,118911,209595,222723,221491,259882,213279.04,273052.16,228715.4,186490,139626,261037,237722,175314,193765,221147,178232,244981,222151.73,271635,99966,41696,102110,164322,218103,166302,178556,180920,160806,212283,191451,242840,112584,97890,100441,163150,195151,-38491,151913,182360,154982,208638,192314,16510,-9884,-58564,-54943,-68155,-73246,-67702,-48714,-48860.73,-37182,-48343,-49959,-46562,-45157,-45065.68,-45522,-81869,6976,33841,75147,181486,78161,9047,102910,178572,131843,33578,70870,194111,193049,138779,122051,214966,176340,211452,202220,280457,138095,36957,103188,150774,169675,155811,175936,244195,196601,237827,275160,303263,157446,-2967,-187953,161480,130318,154662,231591,288766,306407,315886,278952,350093,186459,97270,139930,218633,251684,215005,236115,277592,281872,355361,302429,337139,130011.54,79883.76,120649.78],"Consumo Electricidad (KW)":[111212,104290,106493,104790,103730,98076,118047,123386,118785,116484,110360,106940,111050,97441,105080,95791,101719,99017,108593,114153,109746,112703,110526,108879,111154,94182,110371,108743,108939,104605,115251,126768,116440,118810,111051,104300,101483,91178,100896,95831,81337,94201,105433,115549,109618,116184,123695.0,121618,113024,108788,109854,104487,101901,105290,115170,125456,118881,121120,112895,122300,111329,110415,65308,15971,17870,18108,18741,18577,18343,19148,18435,19658,16725,13707,14847,14992,15316,14830,28345,108346,110193,111606,104957,112195,109724,86090,98097,99443,103297,99172,107484,107660,106627,106595,89890,79637,88954,86467,95233,86715,82196,95681,112806,119917,109376,118062,105663,100482,100846,97618,97172,92447,90239,90239,85780,91757,87369,90342,93748,89310,82669,80059,90367,95005,99079,93864,102307,108418,104431,98286,93111,96767,95149,84304,92694,95615,90209,88419],"Consumo Agua (M3)":[2202,2115,2262,2285,2215,2231,2525,2672,2468,2260,2174,2260,2417,2137,2476,2240,2618,2461,2767,2840,2482,2590,2327,2421,2458,2156,2412,2496,2483,2478,2683,2822,2447,2396,2467,2263,2264,2170,2415,2455,2427,2491,2757,3161,2433,2638,2783,2805,2918,2689,2024.0,2074,2163,2332,2464,2541,2217,2079,1840,2265,2013,1934,1108,622,331,407,503,819,460,383,399,324,284,282,294,290,336,326,752,2296,2304,2015,2039,2057,1936,2228,2665,2795,2840,2577,2456,2407,2168,2004,1769,1911,1838,1927,2117,2076,2206,2315,2830,3084,3487,3853,2448,2338,2314,2315,2653,2571,2506,2506,2960,3693,3101,3144,2891,2927,2724,2436,2664,2793,2852,2941,3060,3198,3018,2908,2761,2981,3086,2834,3135,3192,3203,3177],"Plantilla":[67.7,68.58,71,72,71,75,79,79,83,78,78,77,75.77,74.66,75.73,78.13,79.36,81.02,85.11,86.43,86,83,84,83,75.1,76.37,75.82,78.38,82.18,83.14,84.41,90.32,86.98,84.66,82.65,76.87,76.93,81.55,77.76,79.41,78.27,78.43,80.43,84.98,84.07,81.57,83.17,83.02,78.84,78.28,77.11,80.29,80.64,79.61,80.71,79.86,81.48,76.49,77.79,76.72,75.41,76.36,56.05,9.72,8.79,8.57,7.63,7.63,7.1,6.33,5.89,5.41,68.09,68.12,68.12,68.12,63.38,67.92,67.2,76.26,86.12,85,87.13,86.9,83.84,79.02,81.73,84.21,83.96,87.92,89.67,91.5,93.31,92.31,91.22,88.59,87.62,87.8,85.9,87.43,87.66,86.07,91.8,90.53,90.31,89.72,90.05,89.55,89.72,88.73,88.08,89.94,81.73,83.53,85.11,87.84,92.07,91.81,93.72,94.67,95.37,94.41,94.3,95.95,94.85,97.9,98.92,97.21,97.6,96.62,95.68,95.56,95.82,96.68,96.27,94.95,99.22,97.2],"Estancias SH":[479,400,511,588,618,810,637,469,525,190,110,74,37,68,110.0,0,615,974,714,359,737,734,372,531,448.0,478,558,582.0,34,99.0,64,14,0,0,57.0,72,35,105.0,72,0,27,30,31.0,6,0,23,30.0,41,61,56,62,38.0,41.0,60,33,31,0,23,30,31,31,null,8,0,null,null,null,null,null,null,null,null,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,null,0,0,0,0,0],"Estancias HD":[1723,1671,1826,1531,1188,1379.0,1445,719,1172,1710,2225,2174,2196,1816.0,2648,1936.0,1515,1252,1387,1191,1552,2032,2088,1836,1945,1851,2096,2432.0,2803.0,2509,2472,2127,2368,2501.0,2493,2619,3212,2416,3620,3540.0,4238,3543,3093,3093,3473.0,3414,2830,3169,3289,2797,3462,2957.0,3649.0,3121,2843,2998,2905,3027.0,2782,2476,3025,2425,1249,0,null,null,null,null,null,null,null,null,0,0,0,0,0,0,52,1839,1490,1387,2865,2703,1825,2945,3429,2800,3516,2891,2459,2583,3055,2778,2353,2169,2415,2081,2462,1896,3026,3575,3232,3000,3612,3893,2279,1979,2149,1946,2299,2419,2232,2232,2535,2600,3604,3531,2641,2167,2131,2044,2058,1856,3270,3394,3237,2975,3044,3339,2566,1825,2322,2002,2127,2051,3254,3375],"Estancias MP":[6331,5507,4873,4427,3947,3183,3655,4348,3913,3907,4817,4473,5596,5202,4651,4495,4341,3417,4024,4741,3676,4148,4989,4154,5218,5496,4739,3828.0,4205,4249,3990.0,4239,4039,4585.0,4564,3476,4321,4805,4040,3609.0,1845,2158,2508,2594,2342.0,2374,3120,3240,4505,3979,3389.0,2715.0,2681.0,2489,2568,2817,2524,2418,3538,3382.0,3917,4642,1572,0,null,null,null,null,null,null,null,null,0,0,0,0,0,0,26,1797,1197,961,2226,2097,1501,2157,2651,2114,2055,1785,2069,2346,2004,2787,2977,2881,3267,3545,3150,2592,1995,1489,2033,2835,2132,2912,3366,3112,4087,4458,2974,1599,1071,1071,1132,1585,1586,2254,2695,2763,3572,3592,2791,1625,1123,920,1262,1524,1355,1604,2511,1929,3157,2952,2027,1878,1137,1042],"Estancias PC":[15,219,38,66,30,32,41,180,105,24,22,36,21,30,10,34,null,null,0,null,2,0,0,0,0,null,0,0,0,0,0,0,0,3.0,35,23,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,null,null,null,0,null,null,null,null,null,null,null,null,0,0,0,0,0,0,0,0,0,0,0,null,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,2,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,null,0,0,0,0,0],"Estancias AI":[1660,1529,2479,2739,3082,4090,5740,6383,5107,5298,3488,3807,3278,3335,3645.0,3750,4457,5044,6600,6750,5176,4963,3283.0,3655,3116,2567,3421,4450.0,3533,4066.0,6110,6549,4558,3963.0,3416,3378,2542.0,2750.0,3128,3286.0,3422,4280,5461,6448.0,4957.0,5298,4451,3784,2548,2911,3924,4733.0,4202.0,5064,5593,5943.0,5180,5082,3330,3824,2945,2618,1613,0,null,null,null,null,null,null,null,null,0,0,0,0,0,0,132,3560,5190,4996,3542,2881,1616,2783,3982,4982,4201,5710,6800,6394,5330,4644,4178,5200,3828,3700,4463,5175,4195,4815,5177,4612,4197,3647,4304,4796,3581,3291,4606,4121,3719,3719,4185,4629,4655,4813,4818,4842,4327,3641,4928,5520,4924,5529,5671,5825,5526,5128,4591,5396,4587,4449,5715,5014,4968,5284]}};
+
+// computed series
+(function(){
+  var vp=D.series["Ventas Paquete"],ho=D.series["Habitaciones Ocupadas"];
+  var vt=D.series["VENTAS"],es=D.series["TOTAL ESTANCIAS"];
+  function s(v){return(v===null||v===undefined||typeof v==="string"||isNaN(+v))?null:+v;}
+  D.series["ADR"]=D.dates.map(function(_,i){var n=s(vp[i]),d=s(ho[i]);return(n!==null&&d&&d>0)?+(n/d).toFixed(2):null;});
+  D.series["IME"]=D.dates.map(function(_,i){var n=s(vt[i]),d=s(es[i]);return(n!==null&&d&&d>0)?+(n/d).toFixed(2):null;});
+})();
+
+var YEARS=[2015,2016,2017,2018,2019,2020,2021,2022,2023,2024,2025,2026];
+var MN=["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+var GRP={
+  "Ocupacion":["TOTAL ESTANCIAS","Habitaciones Ocupadas","% Ocupacion (Est)","% Ocupacion (Hab)"],
+  "Ingresos":["VENTAS","Ventas Paquete"],
+  "KPIs":["ADR","IME"],
+  "Costes":["Coste Directo Ventas","Coste de Personal","Otros Gastos Operativos"],
+  "Resultados":["G.O.P.","EBITDA Operacion","EBITDA Total"],
+  "Suministros":["Consumo Electricidad (KW)","Consumo Agua (M3)"],
+  "RRHH":["Plantilla"],
+  "Regimenes":["Estancias SH","Estancias HD","Estancias MP","Estancias PC","Estancias AI"]
+};
+var PCT=["% Ocupacion (Est)","% Ocupacion (Hab)"];
+var RAT=["ADR","IME"];
+var INT=["TOTAL ESTANCIAS","Habitaciones Ocupadas","Consumo Electricidad (KW)","Consumo Agua (M3)",
+         "Estancias SH","Estancias HD","Estancias MP","Estancias PC","Estancias AI"];
+var PAL=["#4f7cff","#34d399","#f59e0b","#f87171","#a78bfa","#fb923c","#38bdf8","#4ade80","#e879f9","#fbbf24","#6ee7b7","#c084fc"];
+
+var selY=new Set(YEARS), mf=1, mt=12, CH={};
+
+function sn(v){return(v===null||v===undefined||typeof v==="string"||isNaN(+v))?null:+v;}
+
+function fmt(v,m){
+  if(v===null||v===undefined)return"—";
+  if(PCT.indexOf(m)>=0)return v.toFixed(1)+" %";
+  if(RAT.indexOf(m)>=0)return v.toFixed(2)+" EUR";
+  if(m==="Plantilla")return v.toFixed(1);
+  if(INT.indexOf(m)>=0)return Math.round(v).toLocaleString("es-ES");
+  return Math.round(v).toLocaleString("es-ES")+" EUR";
+}
+function fmts(v,m){
+  if(v===null||v===undefined)return"—";
+  var a=Math.abs(v);
+  if(PCT.indexOf(m)>=0)return v.toFixed(1)+"%";
+  if(RAT.indexOf(m)>=0)return v.toFixed(2);
+  if(m==="Plantilla")return v.toFixed(0);
+  if(a>=1e6)return(v/1e6).toFixed(2)+"M";
+  if(a>=1e3)return Math.round(v/1e3)+"K";
+  return Math.round(v).toLocaleString("es-ES");
+}
+
+function ser(m){return D.series[m]||[];}
+function gf(m){
+  var vs=ser(m);
+  return D.dates.map(function(d,i){return{y:d.year,mo:d.month,v:sn(vs[i])};})
+    .filter(function(d){return selY.has(d.y)&&d.mo>=mf&&d.mo<=mt;});
+}
+function dc(id){if(CH[id]){CH[id].destroy();delete CH[id];}}
+
+var cd={responsive:true,maintainAspectRatio:false,
+  plugins:{legend:{display:false},tooltip:{backgroundColor:"#1a1d27",borderColor:"#2e3248",borderWidth:1,titleColor:"#e2e8f0",bodyColor:"#8892a4",padding:10}},
+  scales:{x:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10}}},y:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10}}}}
+};
+function mergeOpts(base,extra){return Object.assign({},base,extra);}
+
+// BUILD FILTERS
+function build(){
+  var el=document.getElementById("yc");
+  el.innerHTML=YEARS.map(function(y){
+    return "<input type='checkbox' class='yc' id='y"+y+"' value='"+y+"' checked onchange='onY()'><label class='ycl' for='y"+y+"'>"+y+"</label>";
+  }).join("");
+  var mfe=document.getElementById("mf"),mte=document.getElementById("mt");
+  MN.forEach(function(m,i){
+    mfe.innerHTML+="<option value='"+(i+1)+"'>"+m+"</option>";
+    mte.innerHTML+="<option value='"+(i+1)+"'"+(i===11?" selected":"")+">"+m+"</option>";
+  });
+  mfe.onchange=function(){mf=+mfe.value;if(mf>mt){mt=mf;mte.value=mf;}all();};
+  mte.onchange=function(){mt=+mte.value;if(mt<mf){mf=mt;mfe.value=mt;}all();};
+  bSel("mm","VENTAS"); bSel("sm","% Ocupacion (Est)"); bSel("am","EBITDA Total");
+}
+function bSel(id,def){
+  var el=document.getElementById(id);
+  Object.keys(GRP).forEach(function(g){
+    var og=document.createElement("optgroup");og.label=g;el.appendChild(og);
+    GRP[g].forEach(function(m){var o=document.createElement("option");o.value=m;o.textContent=m;if(m===def)o.selected=true;og.appendChild(o);});
+  });
+}
+function onY(){selY=new Set();document.querySelectorAll(".yc:checked").forEach(function(c){selY.add(+c.value);});all();}
+function reset(){YEARS.forEach(function(y){var c=document.getElementById("y"+y);if(c)c.checked=true;});selY=new Set(YEARS);mf=1;mt=12;document.getElementById("mf").value=1;document.getElementById("mt").value=12;all();}
+
+// KPIs
+function rKpi(){
+  var defs=[
+    {l:"Ventas Totales",m:"VENTAS",a:"sum",c:"#4f7cff"},
+    {l:"EBITDA Total",m:"EBITDA Total",a:"sum",c:"#34d399"},
+    {l:"G.O.P.",m:"G.O.P.",a:"sum",c:"#a78bfa"},
+    {l:"Ocupacion Media",m:"% Ocupacion (Est)",a:"avg",c:"#f59e0b"},
+    {l:"Plantilla Media",m:"Plantilla",a:"avg",c:"#fb923c"},
+    {l:"ADR (EUR/hab)",m:"ADR",a:"ratio",num:"Ventas Paquete",den:"Habitaciones Ocupadas",c:"#38bdf8"},
+    {l:"IME (EUR/est)",m:"IME",a:"ratio",num:"VENTAS",den:"TOTAL ESTANCIAS",c:"#4ade80"}
+  ];
+  var pY=new Set(Array.from(selY).map(function(y){return y-1;}));
+  function rv(yrs,d){var n=0,dv=0;D.dates.forEach(function(dt,i){if(!yrs.has(dt.year)||dt.month<mf||dt.month>mt)return;var a=sn(D.series[d.num][i]),b=sn(D.series[d.den][i]);if(a!==null&&b!==null&&b>0){n+=a;dv+=b;}});return dv>0?n/dv:null;}
+  var h=defs.map(function(d){
+    var val,pv;
+    if(d.a==="ratio"){val=rv(selY,d);pv=rv(pY,d);}
+    else{
+      var data=gf(d.m).filter(function(x){return x.v!==null;});
+      var vs=data.map(function(x){return x.v;});
+      var tot=vs.reduce(function(a,b){return a+b;},0);
+      val=d.a==="avg"?(vs.length?tot/vs.length:null):tot;
+      var pd=D.dates.map(function(dt,i){return{y:dt.year,mo:dt.month,v:sn(D.series[d.m][i])};})
+        .filter(function(dt){return pY.has(dt.y)&&dt.mo>=mf&&dt.mo<=mt&&dt.v!==null;});
+      var pvs=pd.map(function(x){return x.v;});
+      var pt=pvs.reduce(function(a,b){return a+b;},0);
+      pv=d.a==="avg"?(pvs.length?pt/pvs.length:null):pt;
+    }
+    var delta="";
+    if(pv&&val!==null&&pv!==0){var p=((val-pv)/Math.abs(pv))*100;var cl=p>=0?"pos":"neg";delta="<div class='kd "+cl+"'>"+(p>=0?"&#9650;":"&#9660;")+" "+Math.abs(p).toFixed(1)+"% vs ant.</div>";}
+    var sub=d.a==="ratio"?"Ratio periodo":d.a==="avg"?"Media mensual":"Acumulado";
+    return "<div class='kpi' style='--kc:"+d.c+"'><div class='kl'>"+d.l+"</div><div class='kv'>"+fmts(val,d.m)+"</div><div class='ks'>"+sub+"</div>"+delta+"</div>";
+  }).join("");
+  document.getElementById("kr").innerHTML=h;
+}
+
+// MAIN CHART
+function rMain(){
+  var m=document.getElementById("mm").value,data=gf(m);
+  var labels=data.map(function(d){return MN[d.mo-1]+" "+d.y;});
+  var vals=data.map(function(d){return d.v;});
+  var isPct=PCT.indexOf(m)>=0||RAT.indexOf(m)>=0;
+  dc("c1");
+  var ctx=document.getElementById("c1").getContext("2d");
+  var g=ctx.createLinearGradient(0,0,0,260);g.addColorStop(0,"rgba(79,124,255,.3)");g.addColorStop(1,"rgba(79,124,255,0)");
+  CH.c1=new Chart(ctx,{type:"line",data:{labels:labels,datasets:[{data:vals,borderColor:"#4f7cff",backgroundColor:g,borderWidth:2,pointRadius:data.length>60?0:2,pointHoverRadius:5,fill:true,tension:.3,spanGaps:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:"#1a1d27",borderColor:"#2e3248",borderWidth:1,titleColor:"#e2e8f0",bodyColor:"#8892a4",padding:10,callbacks:{label:function(c){return" "+fmt(c.parsed.y,m);}}}},
+      scales:{x:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10},maxTicksLimit:28}},
+              y:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10},callback:function(v){return isPct?v+(PCT.indexOf(m)>=0?"%":" EUR"):v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?Math.round(v/1e3)+"K":v;}}}}
+    }
+  });
+}
+
+// SEASONALITY
+function rSeas(){
+  var m=document.getElementById("sm").value;
+  var isPct=PCT.indexOf(m)>=0||RAT.indexOf(m)>=0;
+  var bm=MN.map(function(){return[];});
+  gf(m).forEach(function(d){if(d.v!==null)bm[d.mo-1].push(d.v);});
+  var avgs=bm.map(function(a){return a.length?a.reduce(function(x,y){return x+y;},0)/a.length:null;});
+  var mx=Math.max.apply(null,avgs.filter(function(x){return x!==null;}));
+  dc("c2");
+  var ctx=document.getElementById("c2").getContext("2d");
+  CH.c2=new Chart(ctx,{type:"bar",data:{labels:MN,datasets:[{data:avgs,
+    backgroundColor:avgs.map(function(v){return v===null?"#2e3248":"rgba(79,124,255,"+(0.3+(v/mx)*.7)+")";}),
+    borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:"#1a1d27",borderColor:"#2e3248",borderWidth:1,titleColor:"#e2e8f0",bodyColor:"#8892a4",padding:10,callbacks:{label:function(c){return" "+fmt(c.parsed.y,m);}}}},
+      scales:{x:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10}}},
+              y:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10},callback:function(v){return isPct?v+(PCT.indexOf(m)>=0?"%":" EUR"):v>=1e3?Math.round(v/1e3)+"K":v;}}}}
+    }
+  });
+}
+
+// ANNUAL
+function rAnn(){
+  var m=document.getElementById("am").value;
+  var isPct=PCT.indexOf(m)>=0||RAT.indexOf(m)>=0||m==="Plantilla";
+  var by={};var vs=ser(m);
+  D.dates.forEach(function(d,i){if(!selY.has(d.year)||d.month<mf||d.month>mt)return;var v=sn(vs[i]);if(v===null)return;if(!by[d.year])by[d.year]=[];by[d.year].push(v);});
+  var yrs=Object.keys(by).sort();
+  var vals2=yrs.map(function(y){var a=by[y];return isPct?a.reduce(function(x,b){return x+b;},0)/a.length:a.reduce(function(x,b){return x+b;},0);});
+  dc("c3");
+  var ctx=document.getElementById("c3").getContext("2d");
+  CH.c3=new Chart(ctx,{type:"bar",data:{labels:yrs,datasets:[{data:vals2,
+    backgroundColor:vals2.map(function(v){return v<0?"rgba(248,113,113,.7)":"rgba(79,124,255,.7)";}),
+    borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false},tooltip:{backgroundColor:"#1a1d27",borderColor:"#2e3248",borderWidth:1,titleColor:"#e2e8f0",bodyColor:"#8892a4",padding:10,callbacks:{label:function(c){return" "+fmt(c.parsed.y,m);}}}},
+      scales:{x:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10}}},
+              y:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10},callback:function(v){return isPct?v+(PCT.indexOf(m)>=0?"%":" EUR"):v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?Math.round(v/1e3)+"K":v;}}}}
+    }
+  });
+}
+
+// TABLE
+function rTbl(){
+  var dm=["VENTAS","G.O.P.","EBITDA Total","% Ocupacion (Est)","Coste de Personal","Plantilla"];
+  var rm=[{l:"ADR (EUR/hab)",n:"Ventas Paquete",d:"Habitaciones Ocupadas"},{l:"IME (EUR/est)",n:"VENTAS",d:"TOTAL ESTANCIAS"}];
+  var yrs=Array.from(selY).sort();
+
+  var bym={};
+  dm.forEach(function(m){bym[m]={};var vs=ser(m);
+    D.dates.forEach(function(d,i){if(!selY.has(d.year)||d.month<mf||d.month>mt)return;var v=sn(vs[i]);if(v===null)return;if(!bym[m][d.year])bym[m][d.year]=[];bym[m][d.year].push(v);});
+  });
+  var rby={};
+  rm.forEach(function(r){rby[r.l]={};var nv=ser(r.n),dv=ser(r.d);
+    D.dates.forEach(function(d,i){if(!selY.has(d.year)||d.month<mf||d.month>mt)return;var n=sn(nv[i]),dval=sn(dv[i]);if(n===null||dval===null||dval<=0)return;if(!rby[r.l][d.year])rby[r.l][d.year]={n:0,d:0};rby[r.l][d.year].n+=n;rby[r.l][d.year].d+=dval;});
+  });
+
+  function ip(m){return PCT.indexOf(m)>=0||m==="Plantilla";}
+  function ag(arr,m){return ip(m)?arr.reduce(function(a,b){return a+b;},0)/arr.length:arr.reduce(function(a,b){return a+b;},0);}
+
+  function row(lbl,gv){
+    var h="<tr><td>"+lbl+"</td>";var prev=null;
+    yrs.forEach(function(y){var v=gv(y);
+      if(v===null||v===undefined){h+="<td class='n'>-</td>";return;}
+      var tag="";
+      if(prev!==null&&prev!==0){var p=((v-prev)/Math.abs(prev))*100;var cl=p>=0?"tp":"tn";tag="<span class='tag "+cl+"'>"+(p>=0?"+":"")+p.toFixed(1)+"%</span>";}
+      h+="<td class='n'>"+fmts(v,lbl)+" "+tag+"</td>";prev=v;
+    });
+    return h+"</tr>";
+  }
+
+  var h="<thead><tr><th>Magnitud</th>"+yrs.map(function(y){return"<th class='n'>"+y+"</th>";}).join("")+"</tr></thead><tbody>";
+  dm.forEach(function(m){h+=row(m,function(y){var a=bym[m][y];return(a&&a.length)?ag(a,m):null;});});
+  h+="<tr class='dr'><td colspan='"+(yrs.length+1)+"'>KPIs por unidad</td></tr>";
+  rm.forEach(function(r){h+=row(r.l,function(y){var v=rby[r.l][y];return(v&&v.d>0)?v.n/v.d:null;});});
+  h+="</tbody>";
+  document.getElementById("tbl").innerHTML=h;
+}
+
+// REGIME
+function rReg(){
+  var reg=["Estancias SH","Estancias HD","Estancias MP","Estancias PC","Estancias AI"];
+  var lbls=["SH","HD","MP","PC (Pension)","AI (Todo Incl.)"];
+  var tots=reg.map(function(r){return gf(r).filter(function(x){return x.v!==null&&x.v>0;}).reduce(function(a,b){return a+b.v;},0);});
+  dc("c4");
+  var ctx=document.getElementById("c4").getContext("2d");
+  CH.c4=new Chart(ctx,{type:"doughnut",data:{labels:lbls,datasets:[{data:tots,backgroundColor:PAL.slice(0,5),borderWidth:2,borderColor:"#1a1d27"}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:true,position:"bottom",labels:{color:"#8892a4",font:{size:10},padding:8,boxWidth:10}},
+        tooltip:{backgroundColor:"#1a1d27",borderColor:"#2e3248",borderWidth:1,titleColor:"#e2e8f0",bodyColor:"#8892a4",
+          callbacks:{label:function(c){var t=c.dataset.data.reduce(function(a,b){return a+b;},0);return" "+c.raw.toLocaleString("es-ES")+" ("+(t?(c.raw/t*100).toFixed(1):0)+"%)";}}
+        }
+      },cutout:"55%"
+    }
+  });
+}
+
+// COMPARATIVA POR MES
+var CMP_METRICS=["VENTAS","G.O.P.","EBITDA Total","% Ocupacion (Est)","TOTAL ESTANCIAS","Habitaciones Ocupadas","ADR","IME","Coste de Personal","Otros Gastos Operativos","Consumo Electricidad (KW)","Consumo Agua (M3)","Plantilla"];
+
+function buildCmp(){
+  var ms=document.getElementById("cmpM");
+  MN.forEach(function(m,i){ms.innerHTML+="<option value='"+(i+1)+"'"+(i===7?" selected":"")+">"+m+"</option>";});
+  var mk=document.getElementById("cmpK");
+  CMP_METRICS.forEach(function(m){var o=document.createElement("option");o.value=m;o.textContent=m;mk.appendChild(o);});
+}
+
+function rCmp(){
+  var mo=+document.getElementById("cmpM").value;
+  var met=document.getElementById("cmpK").value;
+  var yrs=Array.from(selY).sort();
+  var isPct=PCT.indexOf(met)>=0||RAT.indexOf(met)>=0;
+
+  // Value for each year at selected month
+  var vals=yrs.map(function(y){
+    var idx=D.dates.findIndex(function(d){return d.year===y&&d.month===mo;});
+    if(idx<0) return null;
+    return sn(D.series[met][idx]);
+  });
+
+  // Bar chart
+  dc("c5");
+  var ctx=document.getElementById("c5").getContext("2d");
+  var colors=vals.map(function(v,i){
+    if(v===null) return "#2e3248";
+    if(v<0) return "rgba(248,113,113,.8)";
+    // highlight max
+    var nonNull=vals.filter(function(x){return x!==null;});
+    var mx=Math.max.apply(null,nonNull);
+    return v===mx?"rgba(243,186,47,.9)":"rgba(79,124,255,.75)";
+  });
+  CH.c5=new Chart(ctx,{
+    type:"bar",
+    data:{labels:yrs,datasets:[{data:vals,backgroundColor:colors,borderRadius:5,borderSkipped:false}]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{
+        legend:{display:false},
+        tooltip:{backgroundColor:"#1a1d27",borderColor:"#2e3248",borderWidth:1,titleColor:"#e2e8f0",bodyColor:"#8892a4",padding:10,
+          callbacks:{label:function(c){return" "+fmt(c.parsed.y,met);}}}
+      },
+      scales:{
+        x:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10}}},
+        y:{grid:{color:"#1e2235"},ticks:{color:"#8892a4",font:{size:10},
+          callback:function(v){return isPct?v+(PCT.indexOf(met)>=0?"%":" EUR"):v>=1e6?(v/1e6).toFixed(1)+"M":v>=1e3?Math.round(v/1e3)+"K":v;}}}
+      }
+    }
+  });
+
+  // Multi-metric table for selected month across years
+  var tblMetrics=["VENTAS","G.O.P.","EBITDA Total","% Ocupacion (Est)","ADR","IME","TOTAL ESTANCIAS","Coste de Personal","Plantilla"];
+  var h="<thead><tr><th>Magnitud</th>"+yrs.map(function(y){return"<th class='n'>"+y+"</th>";}).join("")+"</tr></thead><tbody>";
+  tblMetrics.forEach(function(m){
+    h+="<tr><td style='white-space:nowrap'>"+m+"</td>";
+    var rowVals=yrs.map(function(y){
+      var idx=D.dates.findIndex(function(d){return d.year===y&&d.month===mo;});
+      return idx>=0?sn(D.series[m][idx]):null;
+    });
+    var nonNull=rowVals.filter(function(v){return v!==null;});
+    var mx=nonNull.length?Math.max.apply(null,nonNull):null;
+    var mn2=nonNull.length?Math.min.apply(null,nonNull):null;
+    rowVals.forEach(function(v,i){
+      if(v===null){h+="<td class='n' style='color:var(--muted)'>-</td>";return;}
+      var style="";
+      if(v===mx&&nonNull.length>1) style="font-weight:700;color:var(--accent2);";
+      else if(v===mn2&&nonNull.length>1&&mn2!==mx) style="color:var(--accent4);";
+      var prev=i>0?rowVals[i-1]:null;
+      var tag="";
+      if(prev!==null&&prev!==0){
+        var p=((v-prev)/Math.abs(prev))*100;
+        var cl=p>=0?"tp":"tn";
+        tag="<span class='tag "+cl+"'>"+(p>=0?"+":"")+p.toFixed(1)+"%</span>";
+      }
+      h+="<td class='n' style='"+style+"'>"+fmts(v,m)+" "+tag+"</td>";
+    });
+    h+="</tr>";
+  });
+  h+="</tbody>";
+  document.getElementById("tblCmp").innerHTML=h;
+}
+
+function all(){rKpi();rMain();rSeas();rAnn();rTbl();rReg();rCmp();}
+build();buildCmp();all();
+</script>
+</body>
+</html>
